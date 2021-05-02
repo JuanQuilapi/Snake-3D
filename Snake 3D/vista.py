@@ -58,7 +58,7 @@ if __name__ == "__main__":
     vt = 0
     while not glfw.window_should_close(window):  # Dibujando --> 1. obtener el input
         # Calculamos el dt
-        t1 = glfw.get_time()*2/20
+        t1 = glfw.get_time()*5/20
         dt = t1 - t0
         t0 = t1
         # Using GLFW to check for input events
@@ -80,30 +80,11 @@ if __name__ == "__main__":
             Snake.update(dt)
         # logica
         Apple.collide(Snake.posX,Snake.posY)
-        if Apple.collideOn:
-            Snake.alargar()
-            Apple.collideOn = False
         Snake.collideWall()
         if Snake.collideW:
             if GG.o < 2.014 and GG.rotate < 2 * math.pi:
                 GG.xd(15 * dt)
-        Snake.collideSnake()
-        if Snake.collideS:
-            if GG.o < 2.014 and GG.rotate < 2 * math.pi:
-                GG.xd(15 * dt)
-        Snake.Bug()
-        if Snake.bug:
-            Snake.bugCount += 1
-            Snake.stop = True
-            print("BUGEADOOOOOO")
-            if Snake.bugCount >=7:
-                Snake.restart()
-                Snake.bugCount =0
-            else:
-                i = Snake.Ibug()
-                Snake.fix(2)
-            Snake.stop = False
-            Snake.bug = False
+
 
 
         # DIBUJAR LOS MODELOS
