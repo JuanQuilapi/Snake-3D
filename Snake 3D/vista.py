@@ -1,16 +1,8 @@
 import glfw
-from OpenGL.GL import *
-import OpenGL.GL.shaders
-import numpy as np
 import sys
 import lighting_shaders as ls
-import transformations as tr
-import basic_shapes as bs
-import scene_graph as sg
-import easy_shaders as es
 from controller import Controller
 from modelos import *
-import model
 if __name__ == "__main__":
 
     # Initialize glfw
@@ -43,9 +35,12 @@ if __name__ == "__main__":
     # and which one is at the back
     glEnable(GL_DEPTH_TEST)
 
+    # Seteamos las caracteristicas principales
+    img = es.toGPUShape(bs.createTextureCube("img/body1.png"), GL_REPEAT, GL_NEAREST)
     # Hacemos los objetos
     Fondo = Fondo()
-    Snake = Snake()
+    Snake = Snake(img, 0, -5/20, 'up')
+    Body = [body(img, 0, -6/20, 'up'),body(img, 0, -7/20, 'up')]
     Apple = Apple()
     Cam = Camara()
     Sky = cielito()
@@ -58,7 +53,7 @@ if __name__ == "__main__":
     vt = 0
     while not glfw.window_should_close(window):  # Dibujando --> 1. obtener el input
         # Calculamos el dt
-        t1 = glfw.get_time()*2/20
+        t1 = glfw.get_time()*4/20
         dt = t1 - t0
         t0 = t1
         # Using GLFW to check for input events
@@ -69,7 +64,7 @@ if __name__ == "__main__":
         projection = tr.perspective(60, float(width) / float(height), 0.1, 100)
         glUniformMatrix4fv(glGetUniformLocation(mvpPipeline.shaderProgram, "projection"), 1, GL_TRUE, projection)
         if controlador.nuca:
-            view1 = Cam.camara1(dt*3,Snake.direction,Snake.posX,Snake.posY)
+            view1 = Cam.camara1(dt*3, Snake.direction, Snake.posX, Snake.posY)
             view = view1[0]
         elif controlador.c2d:
             view = Cam.Camara2()
@@ -78,37 +73,32 @@ if __name__ == "__main__":
         glUniformMatrix4fv(glGetUniformLocation(mvpPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
         if not Snake.stop:
             Snake.update(dt)
+            for i in range(len(Body)):
+                Body[i].update(dt)
+                if i == 0:
+                    Body[i].follow(Snake)
+                else:
+                    Body[i].follow(Body[i-1])
+
+
         # logica
         Apple.collide(Snake.posX,Snake.posY)
         if Apple.collideOn:
-            Snake.alargar()
+            ult = Body[len(Body)-1].crecer(img)
+            Body.append(ult)
             Apple.collideOn = False
         Snake.collideWall()
         if Snake.collideW:
             if GG.o < 2.014 and GG.rotate < 2 * math.pi:
                 GG.xd(15 * dt)
-        Snake.collideSnake()
-        if Snake.collideS:
-            if GG.o < 2.014 and GG.rotate < 2 * math.pi:
-                GG.xd(15 * dt)
-        Snake.Bug()
-        if Snake.bug:
-            Snake.bugCount += 1
-            Snake.stop = True
-            print("BUGEADOOOOOO")
-            if Snake.bugCount >=7:
-                Snake.restart()
-                Snake.bugCount =0
-            else:
-                i = Snake.Ibug()
-                Snake.fix(2)
-            Snake.stop = False
-            Snake.bug = False
+
 
 
         # DIBUJAR LOS MODELOS
         Fondo.draw(mvpPipeline)
         Snake.draw(mvpPipeline)
+        for i in range(len(Body)):
+            Body[i].draw(mvpPipeline)
         Sky.draw(mvpPipeline)
         GG.draw(mvpPipeline)
         glUseProgram(pipeline.shaderProgram)

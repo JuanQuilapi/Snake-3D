@@ -2,7 +2,6 @@ import basic_shapes as bs
 import transformations as tr
 from OpenGL.GL import *
 import easy_shaders as es
-import basic_shapes_extended as bs_ext
 import scene_graph as sg
 import random
 import math
@@ -53,10 +52,9 @@ class Fondo(object):
         sg.drawSceneGraphNode(self.Borde, pipeline, 'model')
 
 class Snake(object):
-    def __init__(self):
+    def __init__(self, img,x,y,dir):
         # figura base
-        gpuHead = es.toGPUShape(bs.createTextureCube("img/body1.png"), GL_REPEAT, GL_NEAREST)
-        gpuBody = es.toGPUShape(bs.createTextureCube("img/body1.png"), GL_REPEAT, GL_NEAREST)
+        gpuHead = img
         # creamos la cabeza
         head = sg.SceneGraphNode('head')
         head.transform = tr.uniformScale(0.063)
@@ -65,129 +63,15 @@ class Snake(object):
         transform_head = sg.SceneGraphNode('headTR')
         transform_head.childs += [head]
         self.head = transform_head
-        # creamos el cuerpo
-        body = sg.SceneGraphNode('body')
-        body.transform = tr.uniformScale(0.05)
-        body.childs += [gpuBody]
-        transform_body = sg.SceneGraphNode('BodyTR')
-        transform_body.childs += [body]
-
-        def createBody(n):
-            newBody = sg.SceneGraphNode('body' + str(n))
-            newBody.transform = tr.matmul([tr.translate(0, 0, 0)])  # tr.matmul([])..
-            newBody.childs += [body]
-            transform_newBody = sg.SceneGraphNode('newBodyTR' + str(n))
-            transform_newBody.childs += [newBody]
-            return newBody
-
-        Bodys = [createBody(1),createBody(2),createBody(3),createBody(4),createBody(5)]
-        self.Bodys = Bodys
-        posbX = [0, 0 ,0, 0, 0]
-        directionsb = ['up', 'up', 'up', 'up', 'up']
-        self.posbX = posbX
-        self.o = 10
-        posbY = [0, -1/20, -2/20, -3/20, -4/20]
-        self.posbY = posbY
-        self.direction = 'up'
-        self.headS = head
-        self.bodyS = body
-        self.head = transform_head
-        self.body = transform_body
-        self.posX = 0
-        self.posY = 0
-        self.posUGiro = [0, 0]
-        self.posDGiro = [0, 0]
-        self.posRGiro = [0, 0]
-        self.posLGiro = [0, 0]
-        self.directionsb = directionsb
-        self.n = 0
-        self.createBody = createBody(self.n)
+        self.direction = dir
+        self.posX = x
+        self.posY = y
         self.collideW = False
-        self.collideS = False
         self.rotate = 0
         self.stop = False
-        self.bug = False
-        self.bugCount = 0
     def draw(self, pipeline):
         self.head.transform = tr.matmul([tr.translate(self.posX, self.posY, 0), tr.rotationZ(self.rotate)])
-        for i in range(len(self.Bodys)):
-            x = self.posbX[i]
-            y = self.posbY[i]
-            if i ==0:
-                self.Bodys[i].transform = tr.matmul([tr.translate(x, y, 0)])
-            else:
-                self.Bodys[i].transform = tr.translate(x, y, 0)
-            sg.drawSceneGraphNode(self.Bodys[i], pipeline, 'model')
         sg.drawSceneGraphNode(self.head, pipeline, 'model')
-
-    def alargar(self):
-        n = len(self.Bodys)
-        self.n = n + 1
-        self.Bodys.append(self.createBody)
-        self.directionsb.append(self.directionsb[n - 1])
-        if self.directionsb[n] == 'up':
-            self.posbX.append(self.posbX[n - 1])
-            self.posbY.append(self.posbY[n - 1] - 1/20)
-        if self.directionsb[n] == 'down':
-            self.posbX.append(self.posbX[n - 1])
-            self.posbY.append(self.posbY[n - 1] + 1/20)
-        if self.directionsb[n] == 'right':
-            self.posbX.append(self.posbX[n - 1] - 1/20)
-            self.posbY.append(self.posbY[n - 1])
-        if self.directionsb[n] == 'left':
-            self.posbX.append(self.posbX[n - 1] + 1/20)
-            self.posbY.append(self.posbY[n - 1])
-
-    def Bug(self):
-        distX = []
-        distY = []
-        for i in range(1,len(self.posbX)):
-            x = abs(self.posbX[i] - self.posbX[i - 1])
-            y = abs(self.posbY[i] - self.posbY[i - 1])
-            distX.append(x)
-            distY.append(y)
-            if x> 0.06 or y>0.06:
-                self.bug = True
-            if self.bugCount >0:
-                if x==0 or y==0:
-                    self.bug = True
-        #print("X= ", distX, "Y= ", distY)
-
-
-
-    def Ibug(self):
-        for i in range(1,len(self.posbX)):
-            x = abs(self.posbX[i] - self.posbX[i - 1])
-            y = abs(self.posbY[i] - self.posbY[i - 1])
-            if x > 0.06 or y > 0.06:
-                return i-1
-    def fix(self,i):
-        x = 0
-        y = 0
-        if self.directionsb[i] == 'up':
-            x, y = 0, -1/20
-        if self.directionsb[i] == 'down':
-            x, y = 0, 1/20
-        if self.directionsb[i] == 'left':
-            x, y = 1/20, 0
-        if self.directionsb[i] == 'left':
-            x, y = -1/20, 0
-        for i in range(i,len(self.posbX)):
-            self.posbX[i] = self.posbX[i-1]+x
-            self.posbY[i] = self.posbY[i-1]+y
-    def restart(self):
-        self.direction = 'up'
-        self.posX = 0
-        self.posY = 0
-        self.posUGiro = [0, 0]
-        self.posDGiro = [0, 0]
-        self.posRGiro = [0, 0]
-        self.posLGiro = [0, 0]
-        for i in range(len(self.Bodys)):
-            self.directionsb[i] = 'up'
-            self.posbX[i] = 0
-            self.posbY[i] = i*(-1/20)
-
     def collideWall(self):
         limit = 1-(1/20*1.55)
         if abs(self.posX - limit) < 0.001 or abs(self.posX + limit) < 0.001 or abs(self.posY - limit) < 0.001 or abs(
@@ -195,177 +79,21 @@ class Snake(object):
             self.collideW = True
             self.stop = True
 
-    def collideSnake(self):
-        for i in range(1,len(self.Bodys)):
-            if abs(self.posbX[i]-self.posX)<0.01 and abs(self.posbY[i]-self.posY)<0.01:
-                self.collideS = True
-                self.stop = True
-
     def update(self, dt):
-        dif = 0.002
         if self.direction == 'right':
             self.posX += dt
-            self.directionsb[0] = 'right'
-            self.posbX[0] += dt
         if self.direction == 'left':
             self.posX -= dt
-            self.directionsb[0] = 'left'
-            self.posbX[0] -= dt
-
         if self.direction == 'up':
             self.posY += dt
-            self.directionsb[0] = 'up'
-            self.posbY[0] += dt
-
         if self.direction == 'down':
             self.posY -= dt
-            self.directionsb[0] = 'down'
-            self.posbY[0] -= dt
-        for i in range(1, len(self.Bodys)):
-            if self.directionsb[i] == 'up' and abs(self.posbX[i] - self.posUGiro[1]) < dif:
-                if self.directionsb[i - 1] == 'right' and abs(self.posbY[i] - self.posRGiro[1]) < dif:
-                    self.directionsb[i] = 'right'
-                if self.directionsb[i - 1] == 'right' and abs(self.posbY[i] - self.posRGiro[0]) < dif:
-                    self.directionsb[i] = 'right'
-                if self.directionsb[i - 1] == 'left' and abs(self.posbY[i] - self.posLGiro[1]) < dif:
-                    self.directionsb[i] = 'left'
-                if self.directionsb[i - 1] == 'left' and abs(self.posbY[i] - self.posLGiro[0]) < dif:
-                    self.directionsb[i] = 'left'
-                if self.directionsb[i - 1] == 'down':
-                    if self.posbX[i] < self.posbX[i - 1]:
-                        if abs(self.posbY[i] - self.posRGiro[1]) < dif:
-                            self.directionsb[i] = 'right'
-                        else:
-                            self.posbY[i] += dt
-                    if self.posbX[i] > self.posbX[i - 1]:
-                        if abs(self.posbY[i] - self.posLGiro[1]) < dif:
-                            self.directionsb[i] = 'left'
-                        else:
-                            self.posbY[i] += dt
-                else:
-                    self.posbY[i] += dt
-            elif self.directionsb[i] == 'up' and abs(self.posbX[i] - self.posUGiro[0]) < dif:
-                if self.directionsb[i - 1] == 'right' and abs(self.posbY[i] - self.posRGiro[1]) < dif:
-                    self.directionsb[i] = 'right'
-                if self.directionsb[i - 1] == 'right' and abs(self.posbY[i] - self.posRGiro[0]) < dif:
-                    self.directionsb[i] = 'right'
-                if self.directionsb[i - 1] == 'left' and abs(self.posbY[i] - self.posLGiro[1]) < dif:
-                    self.directionsb[i] = 'left'
-                if self.directionsb[i - 1] == 'left' and abs(self.posbY[i] - self.posLGiro[0]) < dif:
-                    self.directionsb[i] = 'left'
-                else:
-                    self.posbY[i] += dt
-
-
-            elif self.directionsb[i] == 'down' and abs(self.posbX[i] - self.posDGiro[1]) < dif:
-                if self.directionsb[i - 1] == 'right' and abs(self.posbY[i] - self.posRGiro[1]) < dif:
-                    self.directionsb[i] = 'right'
-                if self.directionsb[i - 1] == 'right' and abs(self.posbY[i] - self.posRGiro[0]) < dif:
-                    self.directionsb[i] = 'right'
-                if self.directionsb[i - 1] == 'left' and abs(self.posbY[i] - self.posLGiro[1]) < dif:
-                    self.directionsb[i] = 'left'
-                if self.directionsb[i - 1] == 'left' and abs(self.posbY[i] - self.posLGiro[0]) < dif:
-                    self.directionsb[i] = 'left'
-                if self.directionsb[i - 1] == 'up':
-                    if self.posbX[i] < self.posbX[i - 1]:
-                        if abs(self.posbY[i] - self.posRGiro[1]) < dif:
-                            self.directionsb[i] = 'right'
-                        else:
-                            self.posbY[i] -= dt
-                    if self.posbX[i] > self.posbX[i - 1]:
-                        if abs(self.posbY[i] - self.posLGiro[1]) < dif:
-                            self.directionsb[i] = 'left'
-                        else:
-                            self.posbY[i] -= dt
-                else:
-                    self.posbY[i] -= dt
-            elif self.directionsb[i] == 'down' and abs(self.posbX[i] - self.posDGiro[0]) < dif:
-                if self.directionsb[i - 1] == 'right' and abs(self.posbY[i] - self.posRGiro[1]) < dif:
-                    self.directionsb[i] = 'right'
-                if self.directionsb[i - 1] == 'right' and abs(self.posbY[i] - self.posRGiro[0]) < dif:
-                    self.directionsb[i] = 'right'
-                if self.directionsb[i - 1] == 'left' and abs(self.posbY[i] - self.posLGiro[1]) < dif:
-                    self.directionsb[i] = 'left'
-                if self.directionsb[i - 1] == 'left' and abs(self.posbY[i] - self.posLGiro[0]) < dif:
-                    self.directionsb[i] = 'left'
-                else:
-                    self.posbY[i] -= dt
-
-            elif self.directionsb[i] == 'left' and abs(self.posbY[i] - self.posLGiro[1]) < dif:
-                if self.directionsb[i - 1] == 'up' and abs(self.posbX[i] - self.posUGiro[1]) < dif:
-                    self.directionsb[i] = 'up'
-                if self.directionsb[i - 1] == 'up' and abs(self.posbX[i] - self.posUGiro[0]) < dif:
-                    self.directionsb[i] = 'up'
-                if self.directionsb[i - 1] == 'down' and abs(self.posbX[i] - self.posDGiro[1]) < dif:
-                    self.directionsb[i] = 'down'
-                if self.directionsb[i - 1] == 'down' and abs(self.posbX[i] - self.posDGiro[0]) < dif:
-                    self.directionsb[i] = 'down'
-                if self.directionsb[i - 1] == 'right':
-                    if self.posbY[i] < self.posbY[i - 1]:
-                        if abs(self.posbX[i] - self.posUGiro[1]) < dif:
-                            self.directionsb[i] = 'up'
-                        else:
-                            self.posbX[i] -= dt
-                    if self.posbX[i] > self.posbX[i - 1]:
-                        if abs(self.posbY[i] - self.posDGiro[1]) < dif:
-                            self.directionsb[i] = 'down'
-                        else:
-                            self.posbX[i] -= dt
-                else:
-                    self.posbX[i] -= dt
-            elif self.directionsb[i] == 'left' and abs(self.posbY[i] - self.posLGiro[0]) < dif:
-                if self.directionsb[i - 1] == 'up' and abs(self.posbX[i] - self.posUGiro[1]) < dif:
-                    self.directionsb[i] = 'up'
-                if self.directionsb[i - 1] == 'up' and abs(self.posbX[i] - self.posUGiro[0]) < dif:
-                    self.directionsb[i] = 'up'
-                if self.directionsb[i - 1] == 'down' and abs(self.posbX[i] - self.posDGiro[1]) < dif:
-                    self.directionsb[i] = 'down'
-                if self.directionsb[i - 1] == 'down' and abs(self.posbX[i] - self.posDGiro[0]) < dif:
-                    self.directionsb[i] = 'down'
-                else:
-                    self.posbX[i] -= dt
-
-            elif self.directionsb[i] == 'right' and abs(self.posbY[i] - self.posRGiro[1]) < dif:
-                if self.directionsb[i - 1] == 'up' and abs(self.posbX[i] - self.posUGiro[1]) < dif:
-                    self.directionsb[i] = 'up'
-                if self.directionsb[i - 1] == 'up' and abs(self.posbX[i] - self.posUGiro[0]) < dif:
-                    self.directionsb[i] = 'up'
-                if self.directionsb[i - 1] == 'down' and abs(self.posbX[i] - self.posDGiro[1]) < dif:
-                    self.directionsb[i] = 'down'
-                if self.directionsb[i - 1] == 'down' and abs(self.posbX[i] - self.posDGiro[0]) < dif:
-                    self.directionsb[i] = 'down'
-                if self.directionsb[i - 1] == 'left':
-                    if self.posbY[i] < self.posbY[i - 1]:
-                        if abs(self.posbX[i] - self.posUGiro[1]) < dif:
-                            self.directionsb[i] = 'up'
-                        else:
-                            self.posbX[i] += dt
-                    if self.posbX[i] > self.posbX[i - 1]:
-                        if abs(self.posbY[i] - self.posDGiro[1]) < dif:
-                            self.directionsb[i] = 'down'
-                        else:
-                            self.posbX[i] += dt
-                else:
-                    self.posbX[i] += dt
-            elif self.directionsb[i] == 'right' and abs(self.posbY[i] - self.posRGiro[0]) < dif:
-                if self.directionsb[i - 1] == 'up' and abs(self.posbX[i] - self.posUGiro[1]) < dif:
-                    self.directionsb[i] = 'up'
-                if self.directionsb[i - 1] == 'up' and abs(self.posbX[i] - self.posUGiro[0]) < dif:
-                    self.directionsb[i] = 'up'
-                if self.directionsb[i - 1] == 'down' and abs(self.posbX[i] - self.posDGiro[1]) < dif:
-                    self.directionsb[i] = 'down'
-                if self.directionsb[i - 1] == 'down' and abs(self.posbX[i] - self.posDGiro[0]) < dif:
-                    self.directionsb[i] = 'down'
-                else:
-                    self.posbX[i] += dt
-
 
     def move_up(self):
         if self.direction == 'down':
             return
         else:
             self.direction = 'up'
-            self.posUGiro[1],self.posUGiro[0] = self.posX,self.posUGiro[1]
             self.rotate = 2 * math.pi
 
     def move_down(self):
@@ -373,7 +101,6 @@ class Snake(object):
             return
         else:
             self.direction = 'down'
-            self.posDGiro[1],self.posDGiro[0] = self.posX,self.posDGiro[1]
             self.rotate = math.pi
 
     def move_right(self):
@@ -381,7 +108,6 @@ class Snake(object):
             return
         else:
             self.direction = 'right'
-            self.posRGiro[1],self.posRGiro[0] = self.posY,self.posRGiro[1]
             self.rotate = -math.pi / 2
 
     def move_left(self):
@@ -389,8 +115,56 @@ class Snake(object):
             return
         else:
             self.direction = 'left'
-            self.posLGiro[1],self.posLGiro[0] = self.posY,self.posLGiro[1]
             self.rotate = math.pi / 2
+
+class body(Snake):
+    def __init__(self, img, x, y, dir):
+        Snake.__init__(self, img, x, y, dir)
+
+    def follow(self, Snake):
+        if Snake.direction == 'right':
+            if self.posY > Snake.posY and self.direction == 'up':
+                self.move_right()
+                self.posY, self.posX = Snake.posY, Snake.posX - 1 / 20
+            # dudoso
+            elif self.posY < Snake.posY and self.direction == 'down':
+                self.move_right()
+                self.posY, self.posX = Snake.posY, Snake.posX - 1 / 20
+        if Snake.direction == 'left':
+            if self.posY > Snake.posY and self.direction == 'up':
+                self.move_left()
+                self.posY, self.posX = Snake.posY, Snake.posX + 1 / 20
+            # dudoso
+            elif self.posY < Snake.posY and self.direction == 'down':
+                self.move_left()
+                self.posY, self.posX = Snake.posY, Snake.posX + 1 / 20
+        if Snake.direction =='up':
+            if self.posX > Snake.posX and self.direction == 'right':
+                self.move_up()
+                self.posY, self.posX = Snake.posY - 1/20, Snake.posX
+            elif self.posX < Snake.posX and self.direction == 'left':
+                self.move_up()
+                self.posY, self.posX = Snake.posY - 1/20, Snake.posX
+        if Snake.direction =='down':
+            if self.posX > Snake.posX and self.direction == 'right':
+                self.move_down()
+                self.posY, self.posX = Snake.posY + 1/20, Snake.posX
+            elif self.posX < Snake.posX and self.direction == 'left':
+                self.move_down()
+                self.posY, self.posX = Snake.posY + 1/20, Snake.posX
+
+    def crecer(self,img):
+        x= self.posX
+        y=self.posY
+        dir = self.direction
+        if dir =='up':
+            return body(img,x,y-1/20,dir)
+        elif dir == 'down':
+            return body(img,x,y+1/20,dir)
+        elif dir == 'left':
+            return body(img, x-1/20, y, dir)
+        elif dir == 'right':
+            return body(img,x+1/20,y,dir)
 
 
 def readFaceVertex(faceDescription):
@@ -461,6 +235,7 @@ def readOBJ(filename, color):
 
         return bs.Shape(vertexData, indices)
 class Apple(object):
+
     def __init__(self):
         # figura base
         gpuApple = es.toGPUShape(shape=readOBJ('carrot.obj', (1, 0.5, 0.5)))
